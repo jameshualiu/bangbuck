@@ -39,7 +39,7 @@ export default function LocationPicker() {
     setCenter([lat, lng])
     const lbl = await reverseGeocode(lat, lng)
     setLabel(lbl)
-    if (lbl && !textInput.trim()) setTextInput(lbl)
+    if (lbl) setTextInput(lbl)
   }
 
   async function handleFindStores() {

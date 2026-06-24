@@ -2,17 +2,19 @@ import { useEffect } from 'react'
 import { MapContainer, TileLayer, Marker, Circle, useMapEvents, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
-import markerIcon from 'leaflet/dist/images/marker-icon.png'
-import markerShadow from 'leaflet/dist/images/marker-shadow.png'
 
-// Fix Leaflet's broken default marker icons when bundled with Vite/webpack
-delete L.Icon.Default.prototype._getIconUrl
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: markerIcon2x,
-  iconUrl: markerIcon,
-  shadowUrl: markerShadow,
+const makePin = (color) => L.divIcon({
+  className: '',
+  html: `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="${color}" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+    <circle cx="12" cy="10" r="3" fill="white" stroke="none"/>
+  </svg>`,
+  iconSize: [28, 28],
+  iconAnchor: [14, 28],
 })
+
+const userPin = makePin('#4f51a8')
+const storePin = makePin('#8a86b8')
 
 function ClickHandler({ onMapClick }) {
   useMapEvents({ click: e => onMapClick && onMapClick(e.latlng) })
@@ -46,7 +48,7 @@ export default function Map({
       <TileLayer url={tileUrl} attribution='&copy; <a href="https://carto.com/">CARTO</a>' />
       <RecenterMap center={center} />
       <ClickHandler onMapClick={onMapClick} />
-      {markerPos && <Marker position={markerPos} />}
+      {markerPos && <Marker position={markerPos} icon={userPin} />}
       {markerPos && radiusMeters > 0 && (
         <Circle
           center={markerPos}
@@ -55,7 +57,7 @@ export default function Map({
         />
       )}
       {stores.map(s =>
-        s.lat && s.lng ? <Marker key={s.slug} position={[s.lat, s.lng]} /> : null
+        s.lat && s.lng ? <Marker key={s.slug} position={[s.lat, s.lng]} icon={storePin} /> : null
       )}
     </MapContainer>
   )
