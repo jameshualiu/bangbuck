@@ -16,9 +16,9 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/" element={<RequireAuth><LocationPicker /></RequireAuth>} />
-        <Route path="/stores" element={<RequireAuth><StoreSearch /></RequireAuth>} />
-        <Route path="/results" element={<RequireAuth><Results /></RequireAuth>} />
+        <Route path="/" element={<LocationPicker />} />
+        <Route path="/stores" element={<StoreSearch />} />
+        <Route path="/results" element={<Results />} />
         <Route path="/list" element={<RequireAuth><ShoppingList /></RequireAuth>} />
       </Routes>
     </BrowserRouter>
