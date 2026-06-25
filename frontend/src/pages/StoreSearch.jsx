@@ -1,8 +1,15 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import Map from '../components/Map'
 import Navbar from '../components/Navbar'
 import api from '../api'
+
+function chainName(storeName) {
+  return storeName
+    .replace(/\s+#\d+.*$/, '')
+    .replace(/\s+-\s+.*$/, '')
+    .trim()
+}
 
 export default function StoreSearch() {
   const { state } = useLocation()
@@ -13,6 +20,34 @@ export default function StoreSearch() {
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [expandedMore, setExpandedMore] = useState(false)
+  const [moreSearch, setMoreSearch] = useState('')
+
+  const topChains = useMemo(() => {
+    const map = new Map()
+    for (const s of stores) {
+      const name = chainName(s.store_name)
+      if (!map.has(name)) {
+        map.set(name, { chainName: name, slugs: [], closestMile: s.distance_miles ?? Infinity })
+      }
+      const entry = map.get(name)
+      entry.slugs.push(s.slug)
+      if (s.distance_miles != null && s.distance_miles < entry.closestMile) {
+        entry.closestMile = s.distance_miles
+      }
+    }
+    return [...map.values()]
+      .sort((a, b) => a.closestMile - b.closestMile)
+      .slice(0, 4)
+      .map(c => ({ ...c, count: c.slugs.length }))
+  }, [stores])
+
+  const otherStores = useMemo(() => {
+    const topSlugs = new Set(topChains.flatMap(c => c.slugs))
+    return stores
+      .filter(s => !topSlugs.has(s.slug))
+      .sort((a, b) => (a.distance_miles ?? Infinity) - (b.distance_miles ?? Infinity))
+  }, [stores, topChains])
 
   const center = [lat || 40.7128, lng || -74.006]
 
@@ -20,6 +55,19 @@ export default function StoreSearch() {
     setSelected(prev => {
       const next = new Set(prev)
       next.has(slug) ? next.delete(slug) : next.add(slug)
+      return next
+    })
+  }
+
+  function toggleChain(chain) {
+    setSelected(prev => {
+      const next = new Set(prev)
+      const allSelected = chain.slugs.every(slug => next.has(slug))
+      if (allSelected) {
+        chain.slugs.forEach(slug => next.delete(slug))
+      } else {
+        chain.slugs.forEach(slug => next.add(slug))
+      }
       return next
     })
   }
