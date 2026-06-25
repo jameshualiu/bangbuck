@@ -24,19 +24,19 @@ export default function StoreSearch() {
   const [moreSearch, setMoreSearch] = useState('')
 
   const topChains = useMemo(() => {
-    const map = new Map()
+    const chainMap = new Map()
     for (const s of stores) {
       const name = chainName(s.store_name)
-      if (!map.has(name)) {
-        map.set(name, { chainName: name, slugs: [], closestMile: s.distance_miles ?? Infinity })
+      if (!chainMap.has(name)) {
+        chainMap.set(name, { chainName: name, slugs: [], closestMile: s.distance_miles ?? Infinity })
       }
-      const entry = map.get(name)
+      const entry = chainMap.get(name)
       entry.slugs.push(s.slug)
       if (s.distance_miles != null && s.distance_miles < entry.closestMile) {
         entry.closestMile = s.distance_miles
       }
     }
-    return [...map.values()]
+    return [...chainMap.values()]
       .sort((a, b) => a.closestMile - b.closestMile)
       .slice(0, 4)
       .map(c => ({ ...c, count: c.slugs.length }))
