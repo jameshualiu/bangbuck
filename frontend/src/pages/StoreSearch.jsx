@@ -153,35 +153,130 @@ export default function StoreSearch() {
             </button>
           </div>
 
-          {/* Store multiselect */}
+          {/* Top chains */}
           <p className="text-[12px] font-semibold mt-7 mb-3" style={{ color: '#8a86b8' }}>
             Select stores to search
           </p>
           <div className="grid grid-cols-2 gap-2">
-            {stores.map(s => {
-              const active = selected.has(s.slug)
+            {topChains.map(chain => {
+              const allSelected = chain.slugs.every(slug => selected.has(slug))
+              const someSelected = !allSelected && chain.slugs.some(slug => selected.has(slug))
               return (
                 <button
-                  key={s.slug}
-                  role="checkbox"
-                  aria-checked={active}
-                  onClick={() => toggleStore(s.slug)}
+                  key={chain.chainName}
+                  onClick={() => toggleChain(chain)}
                   className="px-3 py-2 rounded-[10px] text-[13px] text-left transition-colors"
-                  style={active
-                    ? { border: '1px solid #4f51a8', backgroundColor: 'rgba(79,81,168,0.08)', color: '#2a2356' }
-                    : { border: '1px solid #cbb2fe', backgroundColor: '#ffffff', color: '#8a86b8' }
+                  style={
+                    allSelected
+                      ? { border: '1.5px solid #4f51a8', backgroundColor: 'rgba(79,81,168,0.08)', color: '#2a2356' }
+                      : someSelected
+                      ? { border: '1.5px solid #4f51a8', backgroundColor: '#ffffff', color: '#2a2356' }
+                      : { border: '1px solid #cbb2fe', backgroundColor: '#ffffff', color: '#8a86b8' }
                   }
                 >
-                  <span className="font-semibold block truncate">{s.store_name}</span>
-                  {s.distance_miles != null && (
-                    <span className="block text-[11px]" style={{ color: '#aaa4cf' }}>
-                      {s.distance_miles} mi
-                    </span>
-                  )}
+                  <span className="font-semibold flex items-center gap-1 truncate">
+                    <span className="truncate">{chain.chainName}</span>
+                    {someSelected && (
+                      <span
+                        className="w-[6px] h-[6px] rounded-full shrink-0"
+                        style={{ backgroundColor: '#4f51a8' }}
+                      />
+                    )}
+                  </span>
+                  <span className="block text-[11px]" style={{ color: '#aaa4cf' }}>
+                    {chain.count > 1 ? `${chain.count} locations` : '1 location'}
+                    {chain.closestMile !== Infinity ? ` · ${chain.closestMile} mi` : ''}
+                  </span>
                 </button>
               )
             })}
           </div>
+
+          {/* View more stores expander */}
+          {otherStores.length > 0 && (
+            <div
+              className="mt-3 rounded-[10px] overflow-hidden"
+              style={{ border: '1px dashed #cbb2fe' }}
+            >
+              <button
+                onClick={() => {
+                  setExpandedMore(v => {
+                    if (v) setMoreSearch('')
+                    return !v
+                  })
+                }}
+                className="w-full flex items-center justify-between px-[14px] py-[10px] bg-transparent"
+              >
+                <span className="text-[12px] font-semibold" style={{ color: '#524d8a' }}>
+                  View more stores ({otherStores.length})
+                </span>
+                <span
+                  className="text-[13px] transition-transform"
+                  style={{ color: '#8a86b8', display: 'inline-block', transform: expandedMore ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                >
+                  ↓
+                </span>
+              </button>
+
+              {expandedMore && (
+                <div style={{ borderTop: '1px solid #e8e0ff', backgroundColor: '#ffffff' }}>
+                  {/* Search input */}
+                  <div className="px-3 pt-3 pb-2">
+                    <div
+                      className="flex items-center gap-2 rounded-[8px] px-[10px] py-[7px]"
+                      style={{ border: '1px solid #cbb2fe' }}
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+                        <circle cx="11" cy="11" r="7" stroke="#aaa4cf" strokeWidth="2" />
+                        <path d="M20 20l-3-3" stroke="#aaa4cf" strokeWidth="2" strokeLinecap="round" />
+                      </svg>
+                      <input
+                        type="text"
+                        placeholder="Search stores…"
+                        value={moreSearch}
+                        onChange={e => setMoreSearch(e.target.value)}
+                        className="flex-1 text-[13px] bg-transparent outline-none placeholder:text-[#aaa4cf]"
+                        style={{ color: '#2a2356' }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Scrollable store list */}
+                  <div className="overflow-y-auto px-3 pb-3" style={{ maxHeight: '180px' }}>
+                    {otherStores
+                      .filter(s =>
+                        !moreSearch.trim() ||
+                        s.store_name.toLowerCase().includes(moreSearch.toLowerCase())
+                      )
+                      .map(s => (
+                        <label
+                          key={s.slug}
+                          className="flex items-center gap-[10px] px-1 py-[6px] cursor-pointer rounded-[6px]"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selected.has(s.slug)}
+                            onChange={() => toggleStore(s.slug)}
+                            className="w-[14px] h-[14px] shrink-0"
+                            style={{ accentColor: '#4f51a8' }}
+                          />
+                          <div>
+                            <div className="text-[13px] font-medium" style={{ color: '#2a2356' }}>
+                              {s.store_name}
+                            </div>
+                            {s.distance_miles != null && (
+                              <div className="text-[11px]" style={{ color: '#aaa4cf' }}>
+                                {s.distance_miles} mi
+                              </div>
+                            )}
+                          </div>
+                        </label>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Search field */}
           <p className="text-[12px] font-semibold mt-7 mb-2" style={{ color: '#8a86b8' }}>
