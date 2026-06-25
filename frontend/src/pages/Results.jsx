@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import ProductCard from '../components/ProductCard'
+import Navbar from '../components/Navbar'
+import api from '../api'
 
 const TIERS = {
   'ELITE FUEL':        { color: '#4f9e6a', label: 'Elite',     range: '0.80–1.00' },
@@ -18,18 +20,6 @@ const SORT_OPTIONS = [
   { key: 'density', label: 'Protein per calorie' },
   { key: 'cost',    label: 'Cheapest $/g protein' },
 ]
-
-function getUserInitials() {
-  const token = localStorage.getItem('token')
-  if (!token) return 'U'
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1]))
-    const sub = (payload.sub || '').toUpperCase()
-    return sub.slice(0, 2) || 'U'
-  } catch {
-    return 'U'
-  }
-}
 
 function sortResults(results, sort) {
   const copy = [...results]
@@ -52,15 +42,23 @@ function sortResults(results, sort) {
 export default function Results() {
   const { state } = useLocation()
   const navigate = useNavigate()
-  const { results = [], query = '', locationLabel = '' } = state || {}
+  const { results: initialResults = [], query: initialQuery = '', locationLabel = '', zip_code, slugs = [] } = state || {}
 
+  const [results, setResults] = useState(initialResults)
+  const [query, setQuery] = useState(initialQuery)
   const [sort, setSort] = useState('score')
   const [selectedTiers, setSelectedTiers] = useState(new Set())
   const [locOpen, setLocOpen] = useState(false)
   const [savedCount, setSavedCount] = useState(0)
+  const [searching, setSearching] = useState(false)
   const locRef = useRef(null)
 
-  const initials = getUserInitials()
+  const recentLocations = (() => {
+    try {
+      const raw = localStorage.getItem('bangbuck_recent_locations')
+      return raw ? JSON.parse(raw) : []
+    } catch { return [] }
+  })()
 
   useEffect(() => {
     function handleClick(e) {
@@ -80,6 +78,20 @@ export default function Results() {
     sort
   )
 
+  async function handleSearch() {
+    if (!query.trim()) return
+    setSearching(true)
+    try {
+      const { data } = await api.post('/search', { query: query.trim(), zip_code, slugs })
+      setResults(data)
+      setSelectedTiers(new Set())
+    } catch {
+      // keep existing results on failure
+    } finally {
+      setSearching(false)
+    }
+  }
+
   function toggleTier(tier) {
     setSelectedTiers(prev => {
       const next = new Set(prev)
@@ -89,105 +101,112 @@ export default function Results() {
     })
   }
 
-  return (
-    <div className="h-screen flex flex-col" style={{ backgroundColor: '#f5f1ff' }}>
-
-      {/* Top bar */}
-      <header
-        className="sticky top-0 z-40 bg-white border-b flex items-center gap-4 px-7 shrink-0"
-        style={{ borderColor: '#e1d5fb', height: '76px' }}
+  const centerSlot = (
+    <div className="flex items-center gap-2">
+      {/* Search input */}
+      <div
+        className="flex-1 flex items-center gap-2 px-[14px] py-[10px] rounded-[12px] border"
+        style={{ backgroundColor: '#f5f1ff', borderColor: '#cbb2fe' }}
       >
-        {/* Logo */}
-        <span className="text-[22px] font-extrabold shrink-0" style={{ color: '#2a2356' }}>
-          BangBuck
-        </span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2a2356" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+          <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+        </svg>
+        <input
+          type="text"
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && handleSearch()}
+          disabled={searching}
+          placeholder="Search for a food item…"
+          className="flex-1 text-[14px] bg-transparent outline-none placeholder:text-[#aaa4cf] disabled:opacity-50"
+          style={{ color: '#2a2356' }}
+        />
+        {searching && (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8a86b8" strokeWidth="2" strokeLinecap="round" className="animate-spin" style={{ flexShrink: 0 }}>
+            <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+          </svg>
+        )}
+      </div>
 
-        {/* Search + location group (centered, capped at 520px) */}
-        <div className="flex items-center gap-2 flex-1 mx-auto" style={{ maxWidth: '520px' }}>
-          <button
-            className="flex-1 flex items-center gap-2 px-[14px] py-[11px] rounded-[12px] border text-left transition-colors hover:border-[#a58de8]"
-            style={{ backgroundColor: '#f5f1ff', borderColor: '#cbb2fe' }}
-            onClick={() => navigate(-1)}
-            aria-label="Edit search query"
+      {/* Location button */}
+      <div ref={locRef} style={{ position: 'relative' }}>
+        <button
+          onClick={() => setLocOpen(o => !o)}
+          aria-label="Change location"
+          aria-expanded={locOpen}
+          className="flex items-center justify-center rounded-[12px] border transition-colors"
+          style={{
+            width: '42px', height: '42px',
+            ...(locOpen
+              ? { backgroundColor: '#ece4ff', borderColor: '#4f51a8' }
+              : { backgroundColor: '#f5f1ff', borderColor: '#cbb2fe' })
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#524d8a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0z" /><circle cx="12" cy="10" r="3" />
+          </svg>
+        </button>
+        {locOpen && (
+          <div
+            className="absolute bg-white rounded-[14px] border"
+            style={{ top: 'calc(100% + 8px)', right: 0, width: '260px', zIndex: 50, borderColor: '#cbb2fe', boxShadow: '0 16px 36px rgba(42,35,86,0.24)' }}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2a2356" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-            </svg>
-            <span className="text-[14px] truncate" style={{ color: '#2a2356' }}>{query}</span>
-          </button>
-
-          {/* Location button */}
-          <div ref={locRef} className="relative">
+            <p className="text-[11px] font-bold tracking-[0.06em] uppercase px-4 pt-4 pb-2" style={{ color: '#aaa4cf' }}>
+              SHOPPING NEAR
+            </p>
             <button
-              onClick={() => setLocOpen(o => !o)}
-              aria-label="Change location"
-              aria-expanded={locOpen}
-              className="flex items-center justify-center w-11 h-11 rounded-[12px] border transition-colors"
-              style={locOpen
-                ? { backgroundColor: '#ece4ff', borderColor: '#4f51a8' }
-                : { backgroundColor: '#f5f1ff', borderColor: '#cbb2fe' }
-              }
+              className="w-full text-left px-4 py-3 text-[13px] font-semibold flex items-center justify-between transition-colors hover:bg-[#f5f1ff]"
+              style={{ color: '#2a2356' }}
+              onClick={() => setLocOpen(false)}
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#524d8a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0z" /><circle cx="12" cy="10" r="3" />
+              <span className="truncate pr-2">{locationLabel || 'Current location'}</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4f51a8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                <polyline points="20 6 9 17 4 12" />
               </svg>
             </button>
-            {locOpen && (
-              <div
-                className="absolute top-[calc(100%+8px)] right-0 z-50 rounded-[14px] border bg-white"
-                style={{ width: '248px', borderColor: '#cbb2fe', boxShadow: '0 16px 36px rgba(42,35,86,0.24)' }}
-              >
-                <p className="text-[11px] font-bold tracking-[0.06em] uppercase px-4 pt-4 pb-2" style={{ color: '#aaa4cf' }}>
-                  SHOPPING NEAR
-                </p>
-                <button
-                  className="w-full text-left px-4 py-3 text-[13px] font-semibold flex items-center justify-between transition-colors hover:bg-[#f5f1ff]"
-                  style={{ color: '#2a2356' }}
-                  onClick={() => setLocOpen(false)}
-                >
-                  {locationLabel || 'Current location'}
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4f51a8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                </button>
-                <div className="border-t mx-4" style={{ borderColor: '#ece4ff' }} />
-                <button
-                  className="w-full text-left px-4 py-3 pb-4 text-[13px] font-medium transition-colors hover:bg-[#f5f1ff]"
-                  style={{ color: '#4f51a8' }}
-                  onClick={() => { setLocOpen(false); navigate('/') }}
-                >
-                  Change location →
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
 
-        {/* Right cluster */}
-        <div className="flex items-center gap-3 ml-auto shrink-0">
-          <button
-            onClick={() => navigate('/list')}
-            className="inline-flex items-center gap-2 h-[42px] px-[14px] rounded-full border transition-colors hover:bg-[#ece4ff]"
-            style={{ backgroundColor: '#f5f1ff', borderColor: '#e1d5fb', color: '#524d8a', fontSize: '13.5px', fontWeight: 600 }}
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />
-            </svg>
-            Saved
-            {savedCount > 0 && (
-              <span className="text-white text-[11px] font-bold px-[6px] py-[2px] rounded-full" style={{ backgroundColor: '#4f51a8' }}>
-                {savedCount}
-              </span>
+            {recentLocations.filter(l => l.zip_code !== zip_code).length > 0 && (
+              <>
+                <div className="border-t mx-4 mt-1 mb-1" style={{ borderColor: '#ece4ff' }} />
+                <p className="text-[11px] font-bold tracking-[0.06em] uppercase px-4 pt-2 pb-1" style={{ color: '#aaa4cf' }}>
+                  RECENT
+                </p>
+                {recentLocations.filter(l => l.zip_code !== zip_code).map(loc => (
+                  <button
+                    key={loc.zip_code}
+                    className="w-full text-left px-4 py-[9px] text-[13px] font-medium flex items-center gap-2 transition-colors hover:bg-[#f5f1ff]"
+                    style={{ color: '#524d8a' }}
+                    onClick={() => {
+                      setLocOpen(false)
+                      navigate('/stores', { state: { stores: loc.stores, lat: loc.lat, lng: loc.lng, zip_code: loc.zip_code, locationLabel: loc.locationLabel } })
+                    }}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, opacity: 0.6 }}>
+                      <path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0z" /><circle cx="12" cy="10" r="3" />
+                    </svg>
+                    <span className="truncate">{loc.locationLabel || loc.zip_code}</span>
+                  </button>
+                ))}
+              </>
             )}
-          </button>
-          <div
-            className="w-[42px] h-[42px] rounded-full flex items-center justify-center text-white text-[15px] font-bold shrink-0"
-            style={{ background: 'linear-gradient(135deg, #ddbdfc, #757bc8)' }}
-          >
-            {initials}
+
+            <div className="border-t mx-4 mt-1" style={{ borderColor: '#ece4ff' }} />
+            <button
+              className="w-full text-left px-4 py-3 pb-4 text-[13px] font-medium transition-colors hover:bg-[#f5f1ff]"
+              style={{ color: '#4f51a8' }}
+              onClick={() => { setLocOpen(false); navigate('/') }}
+            >
+              New location →
+            </button>
           </div>
-        </div>
-      </header>
+        )}
+      </div>
+    </div>
+  )
+
+  return (
+    <div className="h-screen flex flex-col" style={{ backgroundColor: '#f5f1ff' }}>
+      <Navbar center={centerSlot} savedCount={savedCount} />
 
       {/* Body: sidebar + main */}
       <div className="flex flex-1 overflow-hidden">
@@ -240,7 +259,6 @@ export default function Results() {
               )}
             </div>
 
-            {/* Distribution bar */}
             {results.length > 0 && (
               <div className="flex gap-[2px] h-[9px] rounded-[6px] overflow-hidden mb-3">
                 {TIER_ORDER.filter(t => tierCounts[t] > 0).map(t => (
@@ -254,7 +272,6 @@ export default function Results() {
             )}
 
             <div className="flex flex-col gap-1">
-              {/* All foods */}
               <button
                 role="checkbox"
                 aria-checked={selectedTiers.size === 0}
@@ -330,7 +347,6 @@ export default function Results() {
 
         {/* Main */}
         <main className="flex-1 overflow-y-auto px-7 py-6 pb-10">
-          {/* Heading */}
           <div className="mb-5">
             <h1 className="text-[20px] font-bold tracking-[-0.02em]" style={{ color: '#2a2356' }}>
               High-protein picks near {locationLabel || 'you'}
@@ -343,14 +359,12 @@ export default function Results() {
             </p>
           </div>
 
-          {/* Applied-filters bar */}
           {selectedTiers.size > 0 && (
             <div className="flex flex-wrap items-center gap-2 mb-[18px]">
               <span className="text-[12px] font-semibold" style={{ color: '#8a86b8' }}>Filtered by</span>
               {[...selectedTiers].map(t => (
                 <button
                   key={t}
-                  role="button"
                   aria-label={`Remove filter ${TIERS[t]?.label}`}
                   tabIndex={0}
                   onClick={() => toggleTier(t)}
@@ -379,7 +393,6 @@ export default function Results() {
             </div>
           )}
 
-          {/* Grid / empty states */}
           {results.length === 0 ? (
             <p style={{ color: '#8a86b8' }}>
               No results found. Try a different search term or select more stores.
@@ -389,20 +402,13 @@ export default function Results() {
               className="flex flex-col items-center text-center rounded-[16px] border py-14 px-6"
               style={{ backgroundColor: 'white', borderColor: '#e1d5fb' }}
             >
-              <div
-                className="w-12 h-12 rounded-full flex items-center justify-center mb-4"
-                style={{ backgroundColor: '#ece4ff' }}
-              >
+              <div className="w-12 h-12 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: '#ece4ff' }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4f51a8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
                 </svg>
               </div>
-              <h3 className="text-[17px] font-bold mb-1" style={{ color: '#2a2356' }}>
-                No foods in these tiers
-              </h3>
-              <p className="mb-4" style={{ color: '#8a86b8' }}>
-                Try selecting different tiers or clearing filters.
-              </p>
+              <h3 className="text-[17px] font-bold mb-1" style={{ color: '#2a2356' }}>No foods in these tiers</h3>
+              <p className="mb-4" style={{ color: '#8a86b8' }}>Try selecting different tiers or clearing filters.</p>
               <button
                 onClick={() => setSelectedTiers(new Set())}
                 className="text-[13px] font-bold px-5 py-2.5 rounded-[11px] text-white transition-opacity hover:opacity-90"

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Map from '../components/Map'
+import Navbar from '../components/Navbar'
 import api from '../api'
 
 const RADIUS_OPTIONS = [1, 3, 5, 10, 25]
@@ -96,26 +97,7 @@ export default function LocationPicker() {
 
   return (
     <div className="h-screen flex flex-col" style={{ backgroundColor: '#f1ebff' }}>
-
-      {/* Top bar */}
-      <header
-        className="bg-white border-b flex items-center px-7 shrink-0"
-        style={{ borderColor: '#e1d5fb', height: '72px' }}
-      >
-        <span className="text-[22px] font-extrabold tracking-[-0.02em]" style={{ color: '#2a2356' }}>
-          BangBuck
-        </span>
-        <button
-          onClick={() => navigate('/list')}
-          className="ml-auto inline-flex items-center gap-[6px] rounded-full px-[14px] py-2 text-[13px] font-bold transition-opacity hover:opacity-80"
-          style={{ backgroundColor: '#4f51a8', color: '#f1ebff' }}
-        >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
-            <path d="M6 4h12v16l-6-4-6 4V4z" />
-          </svg>
-          Saved
-        </button>
-      </header>
+      <Navbar />
 
       {/* Body */}
       <div className="flex flex-1 overflow-hidden">
