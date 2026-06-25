@@ -4,6 +4,16 @@ import Map from '../components/Map'
 import Navbar from '../components/Navbar'
 import api from '../api'
 
+// groupKey: strips branch numbers only — used for grouping stores into chains.
+// Keeps the "Brand - Location" suffix so distinct sub-brands stay separate.
+function groupKey(storeName) {
+  return storeName
+    .replace(/\s+#\d+.*$/, '')
+    .trim()
+}
+
+// displayName: strips both the branch number and the location suffix for
+// clean card labels (e.g. "Safeway #123 - Downtown" → "Safeway").
 function chainName(storeName) {
   return storeName
     .replace(/\s+#\d+.*$/, '')
@@ -26,18 +36,23 @@ export default function StoreSearch() {
   const topChains = useMemo(() => {
     const chainMap = new Map()
     for (const s of stores) {
-      const name = chainName(s.store_name)
-      if (!chainMap.has(name)) {
-        chainMap.set(name, { chainName: name, slugs: [], closestMile: s.distance_miles ?? Infinity })
+      const key = groupKey(s.store_name)
+      if (!chainMap.has(key)) {
+        chainMap.set(key, { chainName: chainName(s.store_name), slugs: [], closestMile: null })
       }
-      const entry = chainMap.get(name)
+      const entry = chainMap.get(key)
       entry.slugs.push(s.slug)
-      if (s.distance_miles != null && s.distance_miles < entry.closestMile) {
+      if (s.distance_miles != null && (entry.closestMile === null || s.distance_miles < entry.closestMile)) {
         entry.closestMile = s.distance_miles
       }
     }
     return [...chainMap.values()]
-      .sort((a, b) => a.closestMile - b.closestMile)
+      .sort((a, b) => {
+        if (a.closestMile === null && b.closestMile === null) return 0
+        if (a.closestMile === null) return 1
+        if (b.closestMile === null) return -1
+        return a.closestMile - b.closestMile
+      })
       .slice(0, 4)
       .map(c => ({ ...c, count: c.slugs.length }))
   }, [stores])
@@ -46,7 +61,12 @@ export default function StoreSearch() {
     const topSlugs = new Set(topChains.flatMap(c => c.slugs))
     return stores
       .filter(s => !topSlugs.has(s.slug))
-      .sort((a, b) => (a.distance_miles ?? Infinity) - (b.distance_miles ?? Infinity))
+      .sort((a, b) => {
+        if (a.distance_miles === null && b.distance_miles === null) return 0
+        if (a.distance_miles == null) return 1
+        if (b.distance_miles == null) return -1
+        return a.distance_miles - b.distance_miles
+      })
   }, [stores, topChains])
 
   const center = [lat || 40.7128, lng || -74.006]
@@ -187,7 +207,7 @@ export default function StoreSearch() {
                   </span>
                   <span className="block text-[11px]" style={{ color: '#aaa4cf' }}>
                     {chain.count > 1 ? `${chain.count} locations` : '1 location'}
-                    {chain.closestMile !== Infinity ? ` · ${chain.closestMile} mi` : ''}
+                    {chain.closestMile !== null ? ` · ${chain.closestMile} mi` : ''}
                   </span>
                 </button>
               )
@@ -208,8 +228,21 @@ export default function StoreSearch() {
                 }}
                 className="w-full flex items-center justify-between px-[14px] py-[10px] bg-transparent"
               >
-                <span className="text-[12px] font-semibold" style={{ color: '#524d8a' }}>
-                  View more stores ({otherStores.length})
+                <span className="flex items-center gap-2">
+                  <span className="text-[12px] font-semibold" style={{ color: '#524d8a' }}>
+                    View more stores ({otherStores.length})
+                  </span>
+                  {(() => {
+                    const n = otherStores.filter(s => selected.has(s.slug)).length
+                    return n > 0 ? (
+                      <span
+                        className="text-[11px] font-semibold px-[6px] py-[2px] rounded-full"
+                        style={{ backgroundColor: 'rgba(79,81,168,0.1)', color: '#4f51a8' }}
+                      >
+                        {n} selected
+                      </span>
+                    ) : null
+                  })()}
                 </span>
                 <span
                   className="text-[13px] transition-transform"
