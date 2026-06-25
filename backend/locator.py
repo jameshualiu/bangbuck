@@ -60,23 +60,32 @@ def geocode_store(store_name: str, user_lat: float, user_lng: float) -> tuple[fl
 
 def geocode_all_stores(stores: list[dict], user_lat: float, user_lng: float, radius_miles: float) -> list[dict]:
     """
-    Geocode each store and filter to those within radius_miles.
-    Stores that can't be geocoded are kept without coordinates (no radius filter applied).
+    Geocode the first GEOCODE_LIMIT stores for map pins and distance display.
+    All stores are returned — those beyond the geocoding limit have no coordinates.
+    Geocoded stores within radius come first (sorted by distance); the rest follow.
     Respects Nominatim's 1 req/s rate limit.
     """
-    result = []
-    for store in stores[:12]:  # cap at 12 to limit geocoding time
-        coords = geocode_store(store["store_name"], user_lat, user_lng)
-        time.sleep(1.1)
-        if coords:
-            dist = haversine_miles(user_lat, user_lng, coords[0], coords[1])
-            if dist <= radius_miles:
-                result.append({**store, "lat": coords[0], "lng": coords[1], "distance_miles": round(dist, 1)})
+    GEOCODE_LIMIT = 20
+    pinned, unpinned = [], []
+
+    for i, store in enumerate(stores):
+        if i < GEOCODE_LIMIT:
+            coords = geocode_store(store["store_name"], user_lat, user_lng)
+            time.sleep(1.1)
+            if coords:
+                dist = haversine_miles(user_lat, user_lng, coords[0], coords[1])
+                if dist <= radius_miles:
+                    pinned.append({**store, "lat": coords[0], "lng": coords[1], "distance_miles": round(dist, 1)})
+                else:
+                    unpinned.append({**store, "lat": None, "lng": None, "distance_miles": None})
+            else:
+                unpinned.append({**store, "lat": None, "lng": None, "distance_miles": None})
         else:
-            # Unknown location — include without pin, no radius filter
-            result.append({**store, "lat": None, "lng": None, "distance_miles": None})
-    logger.info(f"After radius filter ({radius_miles} mi): {len(result)} stores")
-    return result
+            unpinned.append({**store, "lat": None, "lng": None, "distance_miles": None})
+
+    pinned.sort(key=lambda s: s["distance_miles"])
+    logger.info(f"Returning {len(pinned)} pinned + {len(unpinned)} unpinned stores ({len(stores)} total from Instacart)")
+    return pinned + unpinned
 
 
 async def find_instacart_stores(lat: float, lng: float, zip_code: str) -> list[dict]:

@@ -14,7 +14,15 @@ const makePin = (color) => L.divIcon({
 })
 
 const userPin = makePin('#4f51a8')
-const storePin = makePin('#8a86b8')
+const storeActivePin = makePin('#757bc8')
+const storeDot = L.divIcon({
+  className: '',
+  html: `<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 10 10">
+    <circle cx="5" cy="5" r="5" fill="#cbb2fe"/>
+  </svg>`,
+  iconSize: [10, 10],
+  iconAnchor: [5, 5],
+})
 
 function ClickHandler({ onMapClick }) {
   useMapEvents({ click: e => onMapClick && onMapClick(e.latlng) })
@@ -34,6 +42,7 @@ export default function Map({
   markerPos,
   onMapClick,
   stores = [],
+  selectedSlugs,
   lightTheme = false,
   radiusMeters,
   className = 'w-full h-64 rounded-xl',
@@ -56,9 +65,11 @@ export default function Map({
           pathOptions={{ color: '#4f51a8', fillColor: '#9fa0ff', fillOpacity: 0.18, weight: 1.5, opacity: 0.5 }}
         />
       )}
-      {stores.map(s =>
-        s.lat && s.lng ? <Marker key={s.slug} position={[s.lat, s.lng]} icon={storePin} /> : null
-      )}
+      {stores.map(s => {
+        if (!s.lat || !s.lng) return null
+        const active = !selectedSlugs || selectedSlugs.has(s.slug)
+        return <Marker key={s.slug} position={[s.lat, s.lng]} icon={active ? storeActivePin : storeDot} />
+      })}
     </MapContainer>
   )
 }

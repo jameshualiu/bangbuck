@@ -48,7 +48,11 @@ export default function LocationPicker() {
     setLoading(true)
     try {
       let lat, lng
-      if (textInput.trim()) {
+      if (markerPos && textInput.trim() === label) {
+        // Pin was placed by clicking the map and text wasn't changed — use exact pin coords
+        ;[lat, lng] = markerPos
+      } else if (textInput.trim()) {
+        // User typed a location manually — geocode it
         const params = new URLSearchParams({ q: textInput.trim(), format: 'json', limit: 1 })
         const r = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
           headers: { 'User-Agent': 'BangBuck/1.0' },
@@ -62,8 +66,6 @@ export default function LocationPicker() {
         lng = parseFloat(results[0].lon)
         setCenter([lat, lng])
         setMarkerPos([lat, lng])
-      } else if (markerPos) {
-        ;[lat, lng] = markerPos
       } else {
         setError('Click the map or type a location to get started.')
         return

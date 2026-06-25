@@ -64,6 +64,7 @@ export default function StoreSearch() {
             center={center}
             markerPos={center}
             stores={stores}
+            selectedSlugs={selected}
             lightTheme
             className="w-full h-full"
             style={{ borderRadius: 0 }}
