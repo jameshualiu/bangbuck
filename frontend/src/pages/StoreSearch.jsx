@@ -164,6 +164,8 @@ export default function StoreSearch() {
               return (
                 <button
                   key={chain.chainName}
+                  role="checkbox"
+                  aria-checked={allSelected ? true : someSelected ? 'mixed' : false}
                   onClick={() => toggleChain(chain)}
                   className="px-3 py-2 rounded-[10px] text-[13px] text-left transition-colors"
                   style={
@@ -199,11 +201,10 @@ export default function StoreSearch() {
               style={{ border: '1px dashed #cbb2fe' }}
             >
               <button
+                aria-expanded={expandedMore}
                 onClick={() => {
-                  setExpandedMore(v => {
-                    if (v) setMoreSearch('')
-                    return !v
-                  })
+                  if (expandedMore) setMoreSearch('')
+                  setExpandedMore(v => !v)
                 }}
                 className="w-full flex items-center justify-between px-[14px] py-[10px] bg-transparent"
               >
