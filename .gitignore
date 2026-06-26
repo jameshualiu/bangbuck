@@ -9,6 +9,7 @@ CLAUDE.md
 
 .claude/
 .superpowers/
+docs/
 
 # design-sync build artifacts (regenerated each run)
 .ds-sync/

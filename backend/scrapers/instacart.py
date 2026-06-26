@@ -68,13 +68,28 @@ class InstacartScraper:
                 await Stealth().apply_stealth_async(page)
                 page.on("response", handle_response)
 
-                search_url = f"https://www.instacart.com/store/{slug}/s?q={urllib.parse.quote_plus(query)}"
-                logger.info(f"Searching {slug}: {search_url}")
+                storefront_url = f"https://www.instacart.com/store/{slug}/"
+                logger.info(f"Searching {slug}: {storefront_url} (query={query!r})")
                 try:
-                    await page.goto(search_url, wait_until="domcontentloaded", timeout=30000)
+                    await page.goto(storefront_url, wait_until="domcontentloaded", timeout=30000)
+                    await asyncio.sleep(3)
+                    # Dismiss any auth/login modal that blocks interaction
+                    try:
+                        modal = page.locator(".ReactModal__Overlay, .AuthModal__Overlay, [aria-modal='true']").first
+                        if await modal.is_visible():
+                            await page.keyboard.press("Escape")
+                            await asyncio.sleep(0.5)
+                    except Exception:
+                        pass
+                    # Type into the search box so React owns the query in state
+                    search_input = page.locator("#search-bar-input, input[type='search'], input[placeholder*='earch']").first
+                    await search_input.wait_for(state="visible", timeout=8000)
+                    await page.evaluate("document.querySelector('#search-bar-input, input[type=\"search\"]').focus()")
+                    await search_input.fill(query)
+                    await search_input.press("Enter")
                     await asyncio.sleep(6)
                 except Exception as e:
-                    logger.warning(f"Failed to load {slug}: {e}")
+                    logger.warning(f"Failed to load/search {slug}: {e}")
 
                 if response_tasks:
                     await asyncio.gather(*response_tasks, return_exceptions=True)
