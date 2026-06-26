@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import Map from '../components/Map'
+import StoreMap from '../components/Map'
 import Navbar from '../components/Navbar'
 import api from '../api'
 
@@ -26,7 +26,7 @@ export default function StoreSearch() {
   const navigate = useNavigate()
   const { stores = [], lat, lng, zip_code, locationLabel } = state || {}
 
-  const [selected, setSelected] = useState(() => new Set(stores.map(s => s.slug)))
+  const [selected, setSelected] = useState(() => new Set(stores.filter(s => s.distance_miles != null).map(s => s.slug)))
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -36,6 +36,7 @@ export default function StoreSearch() {
   const topChains = useMemo(() => {
     const chainMap = new Map()
     for (const s of stores) {
+      if (!s.store_name || !s.slug) continue
       const key = groupKey(s.store_name)
       if (!chainMap.has(key)) {
         chainMap.set(key, { chainName: chainName(s.store_name), slugs: [], closestMile: null })
@@ -128,7 +129,7 @@ export default function StoreSearch() {
 
         {/* Map pane */}
         <div className="flex-1 relative border-r overflow-hidden" style={{ borderColor: '#cbb2fe' }}>
-          <Map
+          <StoreMap
             center={center}
             markerPos={center}
             stores={stores}
@@ -183,7 +184,7 @@ export default function StoreSearch() {
               const someSelected = !allSelected && chain.slugs.some(slug => selected.has(slug))
               return (
                 <button
-                  key={chain.chainName}
+                  key={chain.slugs[0]}
                   role="checkbox"
                   aria-checked={allSelected ? true : someSelected ? 'mixed' : false}
                   onClick={() => toggleChain(chain)}
@@ -280,7 +281,7 @@ export default function StoreSearch() {
                     {otherStores
                       .filter(s =>
                         !moreSearch.trim() ||
-                        s.store_name.toLowerCase().includes(moreSearch.toLowerCase())
+                        s.store_name?.toLowerCase().includes(moreSearch.toLowerCase())
                       )
                       .map(s => (
                         <label

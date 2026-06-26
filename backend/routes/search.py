@@ -8,7 +8,7 @@ router = APIRouter(prefix="/search", tags=["search"])
 class SearchRequest(BaseModel):
     query: str
     zip_code: str
-    slugs: list[str] = Field(min_length=1, max_length=20)
+    slugs: list[str] = Field(min_length=1, max_length=50)
 
     @field_validator("slugs")
     @classmethod
