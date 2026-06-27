@@ -30,7 +30,10 @@ export default function LocationPicker() {
       }
     }
     document.addEventListener('mousedown', handleMouseDown)
-    return () => document.removeEventListener('mousedown', handleMouseDown)
+    return () => {
+      document.removeEventListener('mousedown', handleMouseDown)
+      abortRef.current?.abort()
+    }
   }, [])
 
   const radius = RADIUS_OPTIONS[radiusIndex]
