@@ -37,6 +37,99 @@ export default function LocationPicker() {
   const sliderPct = (radiusIndex / (RADIUS_OPTIONS.length - 1)) * 100
   const sliderTrack = `linear-gradient(to right, #4f51a8 0%, #4f51a8 ${sliderPct}%, #ece4ff ${sliderPct}%, #ece4ff 100%)`
 
+  function getRecentLocations() {
+    try {
+      const raw = localStorage.getItem('bangbuck_recent_locations')
+      return raw ? JSON.parse(raw) : []
+    } catch {
+      return []
+    }
+  }
+
+  function handleFocus() {
+    const recents = getRecentLocations()
+    if (!recents.length) return
+    setSuggestions(
+      recents.map(r => ({
+        kind: 'recent',
+        label: r.locationLabel,
+        subtitle: r.zip_code,
+        lat: r.lat,
+        lng: r.lng,
+      }))
+    )
+    setShowDropdown(true)
+  }
+
+  function handleBlur() {
+    // Delay so a mousedown on a dropdown item fires before the dropdown closes
+    setTimeout(() => setShowDropdown(false), 150)
+  }
+
+  async function fetchNominatimSuggestions(query) {
+    const params = new URLSearchParams({ q: query, format: 'json', addressdetails: 1, limit: 5 })
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
+      headers: { 'User-Agent': 'BangBuck/1.0' },
+    })
+    const results = await r.json()
+    if (!results.length) { setShowDropdown(false); return }
+    setSuggestions(
+      results.map(res => ({
+        kind: 'nominatim',
+        label: res.display_name.split(',').slice(0, 2).join(',').trim(),
+        subtitle: [res.type, res.address?.state || res.address?.country]
+          .filter(Boolean)
+          .join(' · '),
+        lat: parseFloat(res.lat),
+        lng: parseFloat(res.lon),
+      }))
+    )
+    setShowDropdown(true)
+  }
+
+  function handleInputChange(e) {
+    const val = e.target.value
+    setTextInput(val)
+    setActiveIndex(-1)
+
+    clearTimeout(debounceRef.current)
+
+    if (val.trim().length < 2) {
+      const recents = getRecentLocations()
+      if (recents.length) {
+        setSuggestions(
+          recents.map(r => ({
+            kind: 'recent',
+            label: r.locationLabel,
+            subtitle: r.zip_code,
+            lat: r.lat,
+            lng: r.lng,
+          }))
+        )
+        setShowDropdown(true)
+      } else {
+        setShowDropdown(false)
+      }
+      return
+    }
+
+    debounceRef.current = setTimeout(() => {
+      fetchNominatimSuggestions(val.trim()).catch(() => setShowDropdown(false))
+    }, 350)
+  }
+
+  function handleSelectSuggestion(suggestion) {
+    setTextInput(suggestion.label)
+    setLabel(suggestion.label)   // keeps handleFindStores from re-geocoding
+    if (suggestion.lat && suggestion.lng) {
+      setMarkerPos([suggestion.lat, suggestion.lng])
+      setCenter([suggestion.lat, suggestion.lng])
+    }
+    setShowDropdown(false)
+    setActiveIndex(-1)
+    setSuggestions([])
+  }
+
   async function reverseGeocode(lat, lng) {
     try {
       const params = new URLSearchParams({ lat, lon: lng, format: 'json', zoom: 14 })
@@ -172,7 +265,9 @@ export default function LocationPicker() {
               type="text"
               placeholder="Address, neighborhood, or ZIP"
               value={textInput}
-              onChange={e => setTextInput(e.target.value)}
+              onChange={handleInputChange}
+              onFocus={handleFocus}
+              onBlur={handleBlur}
               onKeyDown={e => e.key === 'Enter' && handleFindStores()}
               className="flex-1 text-[14px] bg-transparent outline-none placeholder:text-[#aaa4cf]"
               style={{ color: '#2a2356' }}
