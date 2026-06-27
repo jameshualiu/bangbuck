@@ -19,6 +19,7 @@ export default function LocationPicker() {
   const [showDropdown, setShowDropdown] = useState(false)
   const debounceRef = useRef(null)
   const containerRef = useRef(null)
+  const abortRef = useRef(null)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -47,6 +48,10 @@ export default function LocationPicker() {
   }
 
   function handleFocus() {
+    if (textInput.trim().length >= 2) {
+      if (suggestions.length) setShowDropdown(true)
+      return
+    }
     const recents = getRecentLocations()
     if (!recents.length) return
     setSuggestions(
@@ -67,24 +72,31 @@ export default function LocationPicker() {
   }
 
   async function fetchNominatimSuggestions(query) {
-    const params = new URLSearchParams({ q: query, format: 'json', addressdetails: 1, limit: 5 })
-    const r = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
-      headers: { 'User-Agent': 'BangBuck/1.0' },
-    })
-    const results = await r.json()
-    if (!results.length) { setShowDropdown(false); return }
-    setSuggestions(
-      results.map(res => ({
-        kind: 'nominatim',
-        label: res.display_name.split(',').slice(0, 2).join(',').trim(),
-        subtitle: [res.type, res.address?.state || res.address?.country]
-          .filter(Boolean)
-          .join(' · '),
-        lat: parseFloat(res.lat),
-        lng: parseFloat(res.lon),
-      }))
-    )
-    setShowDropdown(true)
+    if (abortRef.current) abortRef.current.abort()
+    abortRef.current = new AbortController()
+    try {
+      const params = new URLSearchParams({ q: query, format: 'json', addressdetails: 1, limit: 5 })
+      const r = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
+        headers: { 'User-Agent': 'BangBuck/1.0' },
+        signal: abortRef.current.signal,
+      })
+      const results = await r.json()
+      if (!results.length) { setShowDropdown(false); return }
+      setSuggestions(
+        results.map(res => ({
+          kind: 'nominatim',
+          label: res.display_name.split(',').slice(0, 2).join(',').trim(),
+          subtitle: [res.type, res.address?.state || res.address?.country]
+            .filter(Boolean)
+            .join(' · '),
+          lat: parseFloat(res.lat),
+          lng: parseFloat(res.lon),
+        }))
+      )
+      setShowDropdown(true)
+    } catch (err) {
+      if (err.name !== 'AbortError') setShowDropdown(false)
+    }
   }
 
   function handleInputChange(e) {
@@ -114,14 +126,14 @@ export default function LocationPicker() {
     }
 
     debounceRef.current = setTimeout(() => {
-      fetchNominatimSuggestions(val.trim()).catch(() => setShowDropdown(false))
+      fetchNominatimSuggestions(val.trim())
     }, 350)
   }
 
   function handleSelectSuggestion(suggestion) {
     setTextInput(suggestion.label)
     setLabel(suggestion.label)   // keeps handleFindStores from re-geocoding
-    if (suggestion.lat && suggestion.lng) {
+    if (suggestion.lat != null && suggestion.lng != null) {
       setMarkerPos([suggestion.lat, suggestion.lng])
       setCenter([suggestion.lat, suggestion.lng])
     }
