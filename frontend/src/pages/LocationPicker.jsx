@@ -292,25 +292,90 @@ export default function LocationPicker() {
           <label className="block text-[12px] font-semibold mb-2" style={{ color: '#8a86b8' }}>
             Location
           </label>
-          <div
-            className="flex items-center gap-[10px] rounded-[12px] border px-[14px] py-[13px] bg-white"
-            style={{ borderColor: '#cbb2fe' }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
-              <path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11z" stroke="#757bc8" strokeWidth="2" strokeLinejoin="round" />
-              <circle cx="12" cy="10" r="2.4" stroke="#757bc8" strokeWidth="2" />
-            </svg>
-            <input
-              type="text"
-              placeholder="Address, neighborhood, or ZIP"
-              value={textInput}
-              onChange={handleInputChange}
-              onFocus={handleFocus}
-              onBlur={handleBlur}
-              onKeyDown={handleKeyDown}
-              className="flex-1 text-[14px] bg-transparent outline-none placeholder:text-[#aaa4cf]"
-              style={{ color: '#2a2356' }}
-            />
+          <div ref={containerRef} className="relative">
+            <div
+              className="flex items-center gap-[10px] rounded-[12px] border px-[14px] py-[13px] bg-white"
+              style={{ borderColor: showDropdown ? '#4f51a8' : '#cbb2fe' }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+                <path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11z" stroke="#757bc8" strokeWidth="2" strokeLinejoin="round" />
+                <circle cx="12" cy="10" r="2.4" stroke="#757bc8" strokeWidth="2" />
+              </svg>
+              <input
+                type="text"
+                placeholder="Address, neighborhood, or ZIP"
+                value={textInput}
+                onChange={handleInputChange}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
+                onKeyDown={handleKeyDown}
+                className="flex-1 text-[14px] bg-transparent outline-none placeholder:text-[#aaa4cf]"
+                style={{ color: '#2a2356' }}
+              />
+            </div>
+
+            {/* Autocomplete dropdown */}
+            {showDropdown && suggestions.length > 0 && (
+              <div
+                className="absolute left-0 right-0 bg-white rounded-[12px] overflow-hidden z-50"
+                style={{
+                  top: 'calc(100% + 6px)',
+                  border: '1px solid #cbb2fe',
+                  boxShadow: '0 8px 24px rgba(79,81,168,0.12)',
+                }}
+              >
+                {suggestions[0]?.kind === 'recent' && (
+                  <div
+                    className="px-[14px] pt-[8px] pb-[4px] text-[11px] font-semibold"
+                    style={{ color: '#aaa4cf' }}
+                  >
+                    Recent
+                  </div>
+                )}
+
+                {suggestions.map((s, i) => (
+                  <div
+                    key={i}
+                    onMouseDown={() => handleSelectSuggestion(s)}
+                    className="flex items-start gap-[10px] px-[14px] py-[10px] cursor-pointer"
+                    style={{
+                      borderBottom: i < suggestions.length - 1 ? '1px solid #f0eaff' : 'none',
+                      backgroundColor: i === activeIndex ? '#f5f0ff' : 'white',
+                    }}
+                  >
+                    {s.kind === 'recent' ? (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style={{ marginTop: 2, flexShrink: 0 }}>
+                        <path d="M12 8v4l3 3" stroke="#aaa4cf" strokeWidth="2" strokeLinecap="round" />
+                        <circle cx="12" cy="12" r="9" stroke="#aaa4cf" strokeWidth="2" />
+                      </svg>
+                    ) : (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style={{ marginTop: 2, flexShrink: 0 }}>
+                        <path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11z" stroke="#aaa4cf" strokeWidth="2" strokeLinejoin="round" />
+                      </svg>
+                    )}
+                    <div>
+                      <div className="text-[13px] font-semibold" style={{ color: '#2a2356' }}>
+                        {s.label}
+                      </div>
+                      {s.subtitle && (
+                        <div className="text-[11px] mt-[1px]" style={{ color: '#8a86b8' }}>
+                          {s.subtitle}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+
+                {suggestions[0]?.kind === 'nominatim' && (
+                  <div
+                    className="px-[12px] py-[6px] text-[10px] text-right"
+                    style={{ color: '#aaa4cf', backgroundColor: '#faf8ff', borderTop: '1px solid #f0eaff' }}
+                  >
+                    Powered by OpenStreetMap
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Radius slider */}
