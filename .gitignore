@@ -1,3 +1,5 @@
+.env
+backend/.env
 backend/bangbuck.db
 bangbuck.db
 frontend/node_modules/
