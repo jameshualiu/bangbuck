@@ -145,6 +145,30 @@ export default function LocationPicker() {
     setSuggestions([])
   }
 
+  function handleKeyDown(e) {
+    if (!showDropdown || !suggestions.length) {
+      if (e.key === 'Enter') handleFindStores()
+      return
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setActiveIndex(i => (i + 1) % suggestions.length)
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setActiveIndex(i => (i - 1 + suggestions.length) % suggestions.length)
+    } else if (e.key === 'Enter') {
+      e.preventDefault()
+      if (activeIndex >= 0) {
+        handleSelectSuggestion(suggestions[activeIndex])
+      } else {
+        handleFindStores()
+      }
+    } else if (e.key === 'Escape') {
+      setShowDropdown(false)
+      setActiveIndex(-1)
+    }
+  }
+
   async function reverseGeocode(lat, lng) {
     try {
       const params = new URLSearchParams({ lat, lon: lng, format: 'json', zoom: 14 })
@@ -283,7 +307,7 @@ export default function LocationPicker() {
               onChange={handleInputChange}
               onFocus={handleFocus}
               onBlur={handleBlur}
-              onKeyDown={e => e.key === 'Enter' && handleFindStores()}
+              onKeyDown={handleKeyDown}
               className="flex-1 text-[14px] bg-transparent outline-none placeholder:text-[#aaa4cf]"
               style={{ color: '#2a2356' }}
             />
