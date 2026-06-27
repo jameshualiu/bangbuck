@@ -4,6 +4,7 @@ import re
 import logging
 import urllib.request
 import urllib.parse
+from functools import lru_cache
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -41,6 +42,7 @@ def extract_ingredients_from_bullets(data: dict) -> list[str]:
     return []
 
 
+@lru_cache(maxsize=512)
 def usda_lookup(query: str) -> dict | None:
     """Return the first Foundation or SR Legacy food match with nutrient data."""
     params = urllib.parse.urlencode({
