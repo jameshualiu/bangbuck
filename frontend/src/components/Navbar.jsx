@@ -13,7 +13,7 @@ export function getUserInitials() {
   }
 }
 
-export default function Navbar({ center, savedCount = 0 }) {
+export default function Navbar({ center, savedCount = 0, onLoginClick }) {
   const navigate = useNavigate()
   const isLoggedIn = !!localStorage.getItem('token')
   const initials = getUserInitials()
@@ -66,7 +66,7 @@ export default function Navbar({ center, savedCount = 0 }) {
         {/* Right cluster */}
         <div className="flex items-center gap-3 ml-auto shrink-0">
           <button
-            onClick={() => navigate(isLoggedIn ? '/list' : '/login')}
+            onClick={() => isLoggedIn ? navigate('/list') : (onLoginClick ? onLoginClick() : navigate('/login'))}
             className="inline-flex items-center gap-2 h-[38px] px-[14px] rounded-full border transition-colors bg-[#f5f1ff] hover:bg-[#ece4ff]"
             style={{ borderColor: '#e1d5fb', color: '#524d8a', fontSize: '13.5px', fontWeight: 600 }}
           >
@@ -113,6 +113,14 @@ export default function Navbar({ center, savedCount = 0 }) {
                 </div>
               )}
             </div>
+          ) : onLoginClick ? (
+            <button
+              onClick={onLoginClick}
+              className="h-[38px] px-[14px] inline-flex items-center rounded-full text-[13.5px] font-semibold transition-colors hover:bg-[#ece4ff]"
+              style={{ color: '#4f51a8' }}
+            >
+              Sign in
+            </button>
           ) : (
             <Link
               to="/login"

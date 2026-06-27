@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
 import api from '../api'
 
 export default function Login() {
@@ -8,6 +8,7 @@ export default function Login() {
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const navigate = useNavigate()
+  const location = useLocation()
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -16,7 +17,9 @@ export default function Login() {
     try {
       const { data } = await api.post('/auth/login', { email, password })
       localStorage.setItem('token', data.access_token)
-      navigate('/')
+      const params = new URLSearchParams(location.search)
+      const from = params.get('from') || '/'
+      navigate(from)
     } catch (err) {
       if (err.response?.status === 401) {
         setError('Invalid email or password.')

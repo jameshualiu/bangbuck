@@ -51,6 +51,11 @@ export default function Results() {
   const [locOpen, setLocOpen] = useState(false)
   const [savedCount, setSavedCount] = useState(0)
   const [searching, setSearching] = useState(false)
+  const [pendingItem, setPendingItem] = useState(null)
+  const [loginEmail, setLoginEmail] = useState('')
+  const [loginPassword, setLoginPassword] = useState('')
+  const [loginError, setLoginError] = useState('')
+  const [loginLoading, setLoginLoading] = useState(false)
   const locRef = useRef(null)
 
   const recentLocations = (() => {
@@ -89,6 +94,31 @@ export default function Results() {
       // keep existing results on failure
     } finally {
       setSearching(false)
+    }
+  }
+
+  async function handleLoginAndSave(e) {
+    e.preventDefault()
+    setLoginError('')
+    setLoginLoading(true)
+    try {
+      const { data } = await api.post('/auth/login', { email: loginEmail, password: loginPassword })
+      localStorage.setItem('token', data.access_token)
+      if (pendingItem !== 'auth') {
+        await api.post('/list/items', pendingItem)
+        setSavedCount(c => c + 1)
+      }
+      setPendingItem(null)
+      setLoginEmail('')
+      setLoginPassword('')
+    } catch (err) {
+      if (err.response?.status === 401) {
+        setLoginError('Invalid email or password.')
+      } else {
+        setLoginError('Something went wrong. Try again.')
+      }
+    } finally {
+      setLoginLoading(false)
     }
   }
 
@@ -206,7 +236,7 @@ export default function Results() {
 
   return (
     <div className="h-screen flex flex-col" style={{ backgroundColor: '#f5f1ff' }}>
-      <Navbar center={centerSlot} savedCount={savedCount} />
+      <Navbar center={centerSlot} savedCount={savedCount} onLoginClick={() => setPendingItem('auth')} />
 
       {/* Body: sidebar + main */}
       <div className="flex flex-1 overflow-hidden">
@@ -420,12 +450,69 @@ export default function Results() {
           ) : (
             <div className="grid grid-cols-2 gap-4">
               {filtered.map((r, i) => (
-                <ProductCard key={i} result={r} onSave={() => setSavedCount(c => c + 1)} />
+                <ProductCard key={i} result={r} onSave={() => setSavedCount(c => c + 1)} onAuthRequired={setPendingItem} />
               ))}
             </div>
           )}
         </main>
       </div>
+
+      {pendingItem && (
+        <div
+          className="fixed inset-0 flex items-center justify-center z-50 px-4"
+          style={{ backgroundColor: 'rgba(42,35,86,0.45)' }}
+          onClick={e => { if (e.target === e.currentTarget) setPendingItem(null) }}
+        >
+          <div
+            className="w-full max-w-sm rounded-[20px] p-8 bg-white border"
+            style={{ borderColor: '#e1d5fb', boxShadow: '0 16px 36px rgba(42,35,86,0.18)' }}
+          >
+            <h2 className="text-[22px] font-extrabold tracking-[-0.02em] mb-1" style={{ color: '#2a2356' }}>
+              {pendingItem === 'auth' ? 'Sign in' : 'Sign in to save'}
+            </h2>
+            <p className="text-[14px] mb-6" style={{ color: '#8a86b8' }}>
+              {pendingItem === 'auth'
+                ? 'Sign in to save items to your list.'
+                : <>Sign in and we'll save <span className="font-semibold" style={{ color: '#4f51a8' }}>{pendingItem.product_name}</span> to your list.</>}
+            </p>
+            {loginError && <p className="text-[13px] mb-4" style={{ color: '#c25c5c' }}>{loginError}</p>}
+            <form onSubmit={handleLoginAndSave} className="space-y-3">
+              <input
+                type="email"
+                placeholder="Email"
+                value={loginEmail}
+                onChange={e => setLoginEmail(e.target.value)}
+                required
+                autoComplete="email"
+                className="w-full px-[14px] py-[13px] rounded-[12px] border text-[14px] bg-white outline-none transition-colors focus:border-[#4f51a8] placeholder:text-[#aaa4cf]"
+                style={{ borderColor: '#cbb2fe', color: '#2a2356' }}
+              />
+              <input
+                type="password"
+                placeholder="Password"
+                value={loginPassword}
+                onChange={e => setLoginPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+                className="w-full px-[14px] py-[13px] rounded-[12px] border text-[14px] bg-white outline-none transition-colors focus:border-[#4f51a8] placeholder:text-[#aaa4cf]"
+                style={{ borderColor: '#cbb2fe', color: '#2a2356' }}
+              />
+              <button
+                type="submit"
+                disabled={loginLoading}
+                className="w-full py-[14px] rounded-[12px] text-[15px] font-bold transition-opacity hover:opacity-90 disabled:opacity-50"
+                style={{ backgroundColor: '#4f51a8', color: '#f1ebff' }}
+              >
+                {loginLoading ? 'Signing in…' : 'Sign In & Save'}
+              </button>
+            </form>
+            <p className="text-[13px] text-center mt-4" style={{ color: '#8a86b8' }}>
+              No account?{' '}
+              <a href="/register" className="font-semibold hover:underline" style={{ color: '#4f51a8' }}>Register</a>
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -9,7 +9,7 @@ const TIERS = {
   'PROCESSED TRAP':    { color: '#c25c5c', label: 'Trap' },
 }
 
-export default function ProductCard({ result, onSave }) {
+export default function ProductCard({ result, onSave, onAuthRequired }) {
   const [saved, setSaved] = useState(false)
   const [saving, setSaving] = useState(false)
 
@@ -30,6 +30,17 @@ export default function ProductCard({ result, onSave }) {
     `https://www.google.com/search?q=${encodeURIComponent(`${result.product_name} ${result.store_name}`)}`
 
   async function handleSave() {
+    if (!localStorage.getItem('token')) {
+      onAuthRequired?.({
+        product_name: result.product_name,
+        store_name: result.store_name,
+        price: result.price_per_unit,
+        score: result.score,
+        tier: result.tier,
+        url: result.url || null,
+      })
+      return
+    }
     setSaving(true)
     try {
       await api.post('/list/items', {
