@@ -70,6 +70,7 @@ export default function LocationPicker() {
   }
 
   function handleBlur() {
+    clearTimeout(debounceRef.current)
     // Delay so a mousedown on a dropdown item fires before the dropdown closes
     setTimeout(() => setShowDropdown(false), 150)
   }
@@ -302,6 +303,11 @@ export default function LocationPicker() {
                 <circle cx="12" cy="10" r="2.4" stroke="#757bc8" strokeWidth="2" />
               </svg>
               <input
+                role="combobox"
+                aria-expanded={showDropdown && suggestions.length > 0}
+                aria-autocomplete="list"
+                aria-controls="location-suggestions"
+                aria-activedescendant={activeIndex >= 0 ? `suggestion-${activeIndex}` : undefined}
                 type="text"
                 placeholder="Address, neighborhood, or ZIP"
                 value={textInput}
@@ -317,6 +323,8 @@ export default function LocationPicker() {
             {/* Autocomplete dropdown */}
             {showDropdown && suggestions.length > 0 && (
               <div
+                id="location-suggestions"
+                role="listbox"
                 className="absolute left-0 right-0 bg-white rounded-[12px] overflow-hidden z-50"
                 style={{
                   top: 'calc(100% + 6px)',
@@ -336,6 +344,9 @@ export default function LocationPicker() {
                 {suggestions.map((s, i) => (
                   <div
                     key={i}
+                    id={`suggestion-${i}`}
+                    role="option"
+                    aria-selected={i === activeIndex}
                     onMouseDown={() => handleSelectSuggestion(s)}
                     className="flex items-start gap-[10px] px-[14px] py-[10px] cursor-pointer"
                     style={{

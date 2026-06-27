@@ -73,15 +73,16 @@ frontend/
     components/
       Map.jsx, ProductCard.jsx
       Navbar.jsx           ← shared app header (72px sticky, avatar, sign-out dropdown, optional center slot)
-    **Location autocomplete (`LocationPicker.jsx`):**
-    - On input focus (empty): shows up to 5 recent locations from `bangbuck_recent_locations` localStorage (clock icon, label + zip subtitle)
-    - On input change (≥ 2 chars, debounced 350ms): calls Nominatim `/search?q=...&format=json&addressdetails=1&limit=5`, shows results (pin icon, "Powered by OpenStreetMap" credit)
-    - Selecting a suggestion fills the input, sets `label` to the same value (so `handleFindStores` skips re-geocoding), and moves the map pin immediately
-    - Keyboard: ↑↓ navigate, Enter selects highlighted item or submits, Escape closes
-    - Click-outside detected via `mousedown` listener on `document`
     api.js               ← axios instance with auto JWT header
     App.jsx              ← React Router v6; only /list requires auth
 ```
+
+**Location autocomplete (`LocationPicker.jsx`):**
+- On input focus (empty): shows up to 5 recent locations from `bangbuck_recent_locations` localStorage (clock icon, label + zip subtitle)
+- On input change (≥ 2 chars, debounced 350ms): calls Nominatim `/search?q=...&format=json&addressdetails=1&limit=5`, shows results (pin icon, "Powered by OpenStreetMap" credit)
+- Selecting a suggestion fills the input, sets `label` to the same value (so `handleFindStores` skips re-geocoding), and moves the map pin immediately
+- Keyboard: ↑↓ navigate, Enter selects highlighted item or submits, Escape closes
+- Click-outside detected via `mousedown` listener on `document`
 
 **Data flow:** Picks location (Leaflet map) → zip code → POST /stores/find → store list → selects stores + enters query → POST /search → USDA lookup + Worth-It scoring → ranked results → (optional) user logs in + saves items → POST /list/items → SQLite.
 
