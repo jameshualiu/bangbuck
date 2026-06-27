@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Map from '../components/Map'
 import Navbar from '../components/Navbar'
@@ -14,7 +14,23 @@ export default function LocationPicker() {
   const [radiusIndex, setRadiusIndex] = useState(2) // default 5 mi
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [suggestions, setSuggestions] = useState([])
+  const [activeIndex, setActiveIndex] = useState(-1)
+  const [showDropdown, setShowDropdown] = useState(false)
+  const debounceRef = useRef(null)
+  const containerRef = useRef(null)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    function handleMouseDown(e) {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setShowDropdown(false)
+        setActiveIndex(-1)
+      }
+    }
+    document.addEventListener('mousedown', handleMouseDown)
+    return () => document.removeEventListener('mousedown', handleMouseDown)
+  }, [])
 
   const radius = RADIUS_OPTIONS[radiusIndex]
   const radiusMeters = radius * 1609.34
