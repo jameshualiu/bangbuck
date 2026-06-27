@@ -7,7 +7,6 @@ frontend/dist/
 __pycache__/
 *.pyc
 /tests
-CLAUDE.md
 
 .claude/
 .superpowers/
