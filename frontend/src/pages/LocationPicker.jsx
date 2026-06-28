@@ -359,10 +359,10 @@ export default function LocationPicker() {
                 aria-label="Use my current location"
                 style={{
                   flexShrink: 0,
-                  padding: 2,
+                  padding: '6px 8px',
                   background: 'none',
                   border: 'none',
-                  cursor: geoLoading ? 'default' : 'pointer',
+                  cursor: geoLoading ? 'not-allowed' : 'pointer',
                   opacity: geoLoading ? 0.6 : 1,
                   display: 'flex',
                   alignItems: 'center',
