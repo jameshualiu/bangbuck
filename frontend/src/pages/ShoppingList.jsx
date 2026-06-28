@@ -42,7 +42,7 @@ export default function ShoppingList() {
           <div>
             <button
               onClick={() => navigate('/results')}
-              className="text-[13px] font-medium mb-[10px] transition-colors hover:opacity-70"
+              className="text-[13px] font-medium mb-[10px] transition-opacity hover:opacity-70"
               style={{ color: '#8a86b8', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
             >
               ← Back to results
