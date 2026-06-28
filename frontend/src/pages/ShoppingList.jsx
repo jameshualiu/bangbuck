@@ -40,6 +40,13 @@ export default function ShoppingList() {
         {/* Heading */}
         <div className="flex items-end justify-between mb-6">
           <div>
+            <button
+              onClick={() => navigate('/results')}
+              className="text-[13px] font-medium mb-[10px] transition-colors hover:opacity-70"
+              style={{ color: '#8a86b8', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+            >
+              ← Back to results
+            </button>
             <h1 className="text-[26px] font-bold tracking-[-0.02em]" style={{ color: '#2a2356' }}>
               Saved List
             </h1>
