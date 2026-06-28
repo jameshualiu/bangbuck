@@ -351,6 +351,44 @@ export default function LocationPicker() {
                 className="flex-1 text-[14px] bg-transparent outline-none placeholder:text-[#aaa4cf]"
                 style={{ color: '#2a2356' }}
               />
+              <div style={{ width: 1, height: 18, background: '#e8e0ff', flexShrink: 0 }} />
+              <button
+                type="button"
+                onClick={handleUseMyLocation}
+                disabled={geoLoading}
+                aria-label="Use my current location"
+                style={{
+                  flexShrink: 0,
+                  padding: 2,
+                  background: 'none',
+                  border: 'none',
+                  cursor: geoLoading ? 'default' : 'pointer',
+                  opacity: geoLoading ? 0.6 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+              >
+                {geoLoading ? (
+                  <svg
+                    width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    className="animate-spin"
+                  >
+                    <circle
+                      cx="12" cy="12" r="9"
+                      stroke="#4f51a8" strokeWidth="2"
+                      strokeDasharray="28 56" strokeLinecap="round"
+                    />
+                  </svg>
+                ) : (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="3" stroke="#4f51a8" strokeWidth="2" />
+                    <path
+                      d="M12 2v3M12 19v3M2 12h3M19 12h3"
+                      stroke="#4f51a8" strokeWidth="2" strokeLinecap="round"
+                    />
+                  </svg>
+                )}
+              </button>
             </div>
 
             {/* Autocomplete dropdown */}
