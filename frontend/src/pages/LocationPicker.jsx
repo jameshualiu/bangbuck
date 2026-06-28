@@ -207,6 +207,9 @@ export default function LocationPicker() {
         const lbl = await reverseGeocode(lat, lng)
         setLabel(lbl)
         if (lbl) setTextInput(lbl)
+        setShowDropdown(false)
+        setActiveIndex(-1)
+        setSuggestions([])
         setGeoLoading(false)
       },
       (err) => {
