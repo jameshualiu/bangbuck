@@ -17,6 +17,7 @@ export default function LocationPicker() {
   const [suggestions, setSuggestions] = useState([])
   const [activeIndex, setActiveIndex] = useState(-1)
   const [showDropdown, setShowDropdown] = useState(false)
+  const [geoLoading, setGeoLoading] = useState(false)
   const debounceRef = useRef(null)
   const containerRef = useRef(null)
   const abortRef = useRef(null)
@@ -190,6 +191,35 @@ export default function LocationPicker() {
     const lbl = await reverseGeocode(lat, lng)
     setLabel(lbl)
     if (lbl) setTextInput(lbl)
+  }
+
+  async function handleUseMyLocation() {
+    if (!navigator.geolocation) {
+      setError('Geolocation is not supported by your browser.')
+      return
+    }
+    setGeoLoading(true)
+    setError('')
+    navigator.geolocation.getCurrentPosition(
+      async ({ coords: { latitude: lat, longitude: lng } }) => {
+        setMarkerPos([lat, lng])
+        setCenter([lat, lng])
+        const lbl = await reverseGeocode(lat, lng)
+        setLabel(lbl)
+        if (lbl) setTextInput(lbl)
+        setGeoLoading(false)
+      },
+      (err) => {
+        const messages = {
+          1: 'Location access denied. Type an address instead.',
+          2: 'Could not get your location. Type an address instead.',
+          3: 'Location request timed out. Type an address instead.',
+        }
+        setError(messages[err.code] || 'Could not get your location.')
+        setGeoLoading(false)
+      },
+      { timeout: 10000 }
+    )
   }
 
   async function handleFindStores() {
