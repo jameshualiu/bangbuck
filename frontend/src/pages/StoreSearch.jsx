@@ -134,6 +134,8 @@ export default function StoreSearch() {
             markerPos={center}
             stores={stores}
             selectedSlugs={selected}
+            onStoreClick={toggleStore}
+            showLabels
             lightTheme
             className="w-full h-full"
             style={{ borderRadius: 0 }}
