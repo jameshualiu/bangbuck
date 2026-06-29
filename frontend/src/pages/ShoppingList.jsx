@@ -41,7 +41,7 @@ export default function ShoppingList() {
         <div className="flex items-end justify-between mb-6">
           <div>
             <button
-              onClick={() => navigate('/results')}
+              onClick={() => navigate(-1)}
               className="text-[13px] font-medium mb-[10px] transition-opacity hover:opacity-70"
               style={{ color: '#8a86b8', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
             >
