@@ -38,13 +38,15 @@ def haversine_miles(lat1: float, lng1: float, lat2: float, lng2: float) -> float
 
 def geocode_store(store_name: str, user_lat: float, user_lng: float) -> tuple[float, float] | None:
     """Find coordinates for the nearest branch of a store chain near user location."""
-    d = 0.3  # ~20 mile bounding box half-width
+    # Strip branch numbers so Nominatim can find the chain (e.g. "Safeway #2756" → "Safeway")
+    chain = store_name.replace(" #", " ").split(" #")[0]
+    chain = chain.split(" - ")[0].strip()
+    d = 0.7  # ~45 mile bounding box half-width; no bounded=1 so viewbox is a preference not a hard limit
     params = urllib.parse.urlencode({
-        "q": store_name,
+        "q": chain,
         "format": "json",
         "limit": 1,
         "viewbox": f"{user_lng - d},{user_lat - d},{user_lng + d},{user_lat + d}",
-        "bounded": 1,
     })
     url = f"https://nominatim.openstreetmap.org/search?{params}"
     req = urllib.request.Request(url, headers={"User-Agent": "BangBuck/1.0 (educational project)"})
@@ -66,6 +68,9 @@ def geocode_all_stores(stores: list[dict], user_lat: float, user_lng: float, rad
     Respects Nominatim's 1 req/s rate limit.
     """
     GEOCODE_LIMIT = 20
+    # Instacart guarantees all returned stores serve the zip code, so accept Nominatim results
+    # within a generous sanity radius (40 mi) even if outside the user's chosen search radius.
+    SANITY_MILES = 40
     pinned, unpinned = [], []
 
     for i, store in enumerate(stores):
@@ -74,8 +79,14 @@ def geocode_all_stores(stores: list[dict], user_lat: float, user_lng: float, rad
             time.sleep(1.1)
             if coords:
                 dist = haversine_miles(user_lat, user_lng, coords[0], coords[1])
-                if dist <= radius_miles:
-                    pinned.append({**store, "lat": coords[0], "lng": coords[1], "distance_miles": round(dist, 1)})
+                if dist <= SANITY_MILES:
+                    in_radius = dist <= radius_miles
+                    pinned.append({
+                        **store,
+                        "lat": coords[0],
+                        "lng": coords[1],
+                        "distance_miles": round(dist, 1) if in_radius else None,
+                    })
                 else:
                     unpinned.append({**store, "lat": None, "lng": None, "distance_miles": None})
             else:
@@ -83,7 +94,7 @@ def geocode_all_stores(stores: list[dict], user_lat: float, user_lng: float, rad
         else:
             unpinned.append({**store, "lat": None, "lng": None, "distance_miles": None})
 
-    pinned.sort(key=lambda s: s["distance_miles"])
+    pinned.sort(key=lambda s: s["distance_miles"] if s["distance_miles"] is not None else float('inf'))
     logger.info(f"Returning {len(pinned)} pinned + {len(unpinned)} unpinned stores ({len(stores)} total from Instacart)")
     return pinned + unpinned
 
