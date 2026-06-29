@@ -90,6 +90,13 @@ frontend/
 
 **Recent locations:** Stored in `localStorage` under `bangbuck_recent_locations` (max 5, deduped by zip code). Written in `StoreSearch` on successful search; read in `Results` location dropdown.
 
+**Map (`Map.jsx`):**
+- Store markers: active stores use a 36px pin (purple `#757bc8`), unselected stores use an 18px dot (light purple `#cbb2fe` with white stroke)
+- `onStoreClick` prop: when provided, clicking a store marker calls `onStoreClick(slug)` — used in `StoreSearch` to toggle sidebar selection
+- `onMapClick` prop: pass `null` to disable map clicks (e.g. during store loading); `LocationPicker` overlays a `cursor: not-allowed` div on top while `loading` is true
+
+**Navigation gotcha:** Results page (`/results`) loads all data from React Router location state. Never navigate to `/results` without state — use `navigate(-1)` from `ShoppingList` to go back and preserve the previous results.
+
 **Test imports:** Tests run from repo root. Import as `sys.path.insert(0, 'backend')` or run pytest with `--rootdir=backend`.
 
 ## Commit Message Conventions
