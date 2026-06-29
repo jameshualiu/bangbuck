@@ -291,12 +291,15 @@ export default function LocationPicker() {
           <Map
             center={center}
             markerPos={markerPos}
-            onMapClick={handleMapClick}
+            onMapClick={loading ? null : handleMapClick}
             lightTheme
             radiusMeters={markerPos ? radiusMeters : 0}
             className="w-full h-full"
             style={{ borderRadius: 0 }}
           />
+          {loading && (
+            <div className="absolute inset-0 z-[500]" style={{ cursor: 'not-allowed' }} />
+          )}
           {/* Radius label chip */}
           <div
             className="absolute left-[18px] bottom-[18px] z-[400] text-[11px] px-[10px] py-[6px] rounded-[8px]"
